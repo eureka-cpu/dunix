@@ -41,7 +41,7 @@ and it will automatically populate `buildDunePackage` for you.
         removeAttrs depends [ "ocaml" ];
     in
     {
-      package.${system} = pkgs.buildDunePackage {
+      package.${system} = pkgs.buildDunePackage (finalAttrs: {
         # Derive derivation name and version from dune-project toplevel or package name and version
         inherit (dune-project) version;
         pname = dune-project.package.name;
@@ -49,6 +49,13 @@ and it will automatically populate `buildDunePackage` for you.
         buildInputs = builtins.attrValues (depends // {
           # inherit (pkgs) hello;
         });
+        doCheck = true;
+        checkPhase = '' # Check that the generated opam file matches source
+          if ! diff "${finalAttrs.src}/${dune-project.name}.opam" "./${dune-project.name}.opam"; then
+            echo "Error: Generated opam file does not match source opam file"
+            exit 1
+          fi
+        '';
         meta =
           let
             inherit (dune-project.source) type owner repo;
@@ -65,7 +72,7 @@ and it will automatically populate `buildDunePackage` for you.
             # Derive license from dune-project license via spdxId
             license = pkgs.lib.getLicenseFromSpdxId dune-project.license;
           };
-      };
+      });
     };
 }
 ```
