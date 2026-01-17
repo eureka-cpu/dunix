@@ -1,4 +1,4 @@
 {
-  description = "Convert an S-expression string to a Nix value.";
+  description = "Convert dune-project files to Nix values.";
   outputs = { self }: { overlays.default = import ./overlay.nix; };
 }

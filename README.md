@@ -4,14 +4,17 @@ Parse dune-project files into nix expressions.
 
 ## Usage with `buildDunePackage`
 
-Below is a minimal examples, though theoretically you could use the information
-from the parsed dune-project file to make assertions about dependencies, match
-on `spdxId`s of licenses, ensure the dune language version matches and more.
+Below is a minimal example of how to use `dunix` to its fullest potential
+by treating `dune-project` as the singular source of truth. Update `dune-project`
+and it will automatically populate `buildDunePackage` for you.
 
 ```nix
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-  inputs.dunix.url = "github:eureka-cpu/dunix/master";
+  description = "A very basic dune-project flake.";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    dunix.url = "github:eureka-cpu/dunix/master";
+  };
   outputs = { self, nixpkgs, dunix, ... }:
     let
       let system = "x86_64-linux";
@@ -20,13 +23,48 @@ on `spdxId`s of licenses, ensure the dune language version matches and more.
         overlays = [ dunix.overlays.default ];
       };
       dune-project = pkgs.importDuneProject ./dune-project;
+      # Populate derivation build inputs from dune-project package dependencies
+      depends =
+        let
+          depends = builtins.listToAttrs (map
+            (dep:
+              {
+                name = dep;
+                value = pkgs.ocamlPackages.${dep};
+              })
+            (builtins.attrNames
+              (builtins.foldl' (acc: dep: acc // dep)
+                { }
+                dune-project.package.depends)));
+        in
+        # Remove dependencies which may be missing from nixpkgs or intrinsic to buildDunePackage
+        removeAttrs depends [ "ocaml" ];
     in
     {
       package.${system} = pkgs.buildDunePackage {
+        # Derive derivation name and version from dune-project toplevel or package name and version
         inherit (dune-project) version;
-        pname = dune-project.name;
+        pname = dune-project.package.name;
         src = pkgs.lib.cleanSource ./.;
-        meta.description = dune-project.description;
+        buildInputs = builtins.attrValues (depends // {
+          # inherit (pkgs) hello;
+        });
+        meta =
+          let
+            inherit (dune-project.source) type owner repo;
+            # Populate maintainers from dune-project maintainers (must be a nixpkgs maintainer)
+            maintainers = map (maintainer: pkgs.lib.maintainers.${(builtins.elemAt (builtins.split " " maintainer) 0)}) dune-project.maintainers;
+          in
+          {
+            inherit maintainers;
+            # Include dune-project package synopsis and description
+            description = dune-project.package.synopsis;
+            longDescription = dune-project.package.description;
+            # Populate source homepage from dune-project source
+            homepage = "https://${type}.com/${owner}/${repo}";
+            # Derive license from dune-project license via spdxId
+            license = pkgs.lib.getLicenseFromSpdxId dune-project.license;
+          };
       };
     };
 }
@@ -43,7 +81,7 @@ nix-repl> pkgs = import <nixpkgs> { overlays = [ outputs.overlays.default ]; }
 nix-repl> pkgs.importDuneProject <DUNE_PROJECT_FILE_PATH>
 ```
 
-Output of [eureka-cpu/ns](https://github.com/eureka-cpu/ns):
+Output of [eureka-cpu/ns/dune-project](https://github.com/eureka-cpu/ns):
 ```nix
 {
   authors = [ "eureka-cpu <github.eureka@gmail.com>" ];

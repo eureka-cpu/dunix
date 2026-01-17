@@ -1,4 +1,4 @@
-# Credit to https://github.com/inkpot-monkey/nix-parsec/tree/examples-lisp for creator the original lisp parser.
+# Credit to https://github.com/inkpot-monkey/nix-parsec/tree/examples-lisp for creating the original lisp parser.
 
 let
   nix-parsec =
