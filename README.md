@@ -8,7 +8,7 @@ Below is a minimal example of how to use `dunix` to its fullest potential
 by treating `dune-project` as the singular source of truth. Update `dune-project`
 and it will automatically populate `buildDunePackage` for you.
 
-> \[!NOTE\]:
+> [!Note]
 > This is available as a flake template: `nix flake init -t github:eureka-cpu/dunix#project`.
 
 ```nix
