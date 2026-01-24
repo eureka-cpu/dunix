@@ -8,6 +8,9 @@ Below is a minimal example of how to use `dunix` to its fullest potential
 by treating `dune-project` as the singular source of truth. Update `dune-project`
 and it will automatically populate `buildDunePackage` for you.
 
+> \[!NOTE\]:
+> This is available as a flake template: `nix flake init -t github:eureka-cpu/dunix#project`.
+
 ```nix
 {
   description = "A very basic dune-project flake.";
@@ -15,7 +18,7 @@ and it will automatically populate `buildDunePackage` for you.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     dunix.url = "github:eureka-cpu/dunix/master";
   };
-  outputs = { self, nixpkgs, dunix, ... }:
+  outputs = { self, nixpkgs, dunix }:
     let
       let system = "x86_64-linux";
       let pkgs = import nixpkgs {
@@ -38,10 +41,10 @@ and it will automatically populate `buildDunePackage` for you.
                 dune-project.package.depends)));
         in
         # Remove dependencies which may be missing from nixpkgs or intrinsic to buildDunePackage
-        removeAttrs depends [ "ocaml" ];
+        removeAttrs depends [ "dune" "ocaml" ];
     in
     {
-      package.${system} = pkgs.buildDunePackage (finalAttrs: {
+      packages.${system}.default = pkgs.ocamlPackages.buildDunePackage (finalAttrs: {
         # Derive derivation name and version from dune-project toplevel or package name and version
         inherit (dune-project) version;
         pname = dune-project.package.name;

@@ -1,0 +1,4 @@
+(executable
+ (public_name basic-dune-project)
+ (name main)
+ (libraries basic_dune_project))
